@@ -1,29 +1,21 @@
-# Stage 1: Build Stage
-FROM maven:3.9-openjdk-17-slim AS build
+# Stage 1: Build Stage (Change this line)
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /build
 
-# 1. Copy the parent pom from the root
 COPY pom.xml .
-
-# 2. Copy the entire backend folder
-# (Matches the <module>backend</module> in your root pom)
 COPY backend ./backend
 
-# 3. Build the backend module specifically
-# -pl: project list, -am: also make dependencies
+# Build the backend
 RUN mvn clean package -pl backend -am -DskipTests
 
-# Stage 2: Runtime Stage
-FROM openjdk:17-slim
+# Stage 2: Runtime Stage (Change this line)
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# 4. Copy the fat JAR produced by the assembly plugin
-# It is located in /build/backend/target/peerlink.jar
+# Copy the JAR from the build stage
 COPY --from=build /build/backend/target/peerlink.jar /app/app.jar
 
-# 5. Expose the API port
 EXPOSE 8080
 
-# 6. Run the application
-# We use app.jar because we renamed it during the COPY step for simplicity
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Start the application
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
