@@ -26,6 +26,7 @@ public class FileController {
         // Pass the server instance to FileSharer so it can add routes dynamically
         this.fileSharer = new FileSharer(server);
         
+        // Use temp directory for cloud-native storage
         this.uploadDir = System.getProperty("java.io.tmpdir") + File.separator + "peerlink-uploads";
         this.executorService = Executors.newFixedThreadPool(10);
         
@@ -36,7 +37,7 @@ public class FileController {
         
         // Register standard routes
         server.createContext("/upload", new UploadHandler());
-        server.createContext("/", new DefaultHandler()); // Handles root and CORS pre-flights
+        server.createContext("/", new DefaultHandler()); 
         
         server.setExecutor(executorService);
     }
@@ -52,20 +53,24 @@ public class FileController {
     }
 
     /**
-     * Helper to set consistent CORS headers for all responses
+     * Fixed CORS logic to handle Allow-Credentials properly
      */
     private void setCORSHeaders(HttpExchange exchange) {
         Headers headers = exchange.getResponseHeaders();
         String origin = exchange.getRequestHeaders().getFirst("Origin");
-        headers.set("Access-Control-Allow-Origin", (origin != null) ? origin : "*");
+        
+        // Browser security: If credentials are true, Origin CANNOT be "*"
+        if (origin != null) {
+            headers.set("Access-Control-Allow-Origin", origin);
+        } else {
+            headers.set("Access-Control-Allow-Origin", "*");
+        }
+        
         headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
         headers.set("Access-Control-Allow-Credentials", "true");
     }
 
-    /**
-     * Handles root requests and CORS OPTIONS pre-flight
-     */
     private class DefaultHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -82,9 +87,6 @@ public class FileController {
         }
     }
 
-    /**
-     * Handles file uploads and triggers FileSharer to create a download link
-     */
     private class UploadHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -102,9 +104,7 @@ public class FileController {
 
             String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
             if (contentType == null || !contentType.startsWith("multipart/form-data")) {
-                String error = "Invalid Content-Type";
-                exchange.sendResponseHeaders(400, error.length());
-                exchange.getResponseBody().write(error.getBytes());
+                sendError(exchange, 400, "Invalid Content-Type. Expected multipart/form-data.");
                 return;
             }
 
@@ -120,7 +120,7 @@ public class FileController {
                     throw new IOException("Failed to parse multipart data");
                 }
 
-                // Save file to temp directory
+                // Save file
                 String uniqueFilename = UUID.randomUUID().toString() + "_" + result.filename;
                 File fileToSave = new File(uploadDir, uniqueFilename);
                 
@@ -128,10 +128,9 @@ public class FileController {
                     fos.write(result.fileContent);
                 }
 
-                // NEW LOGIC: Instead of a port, we get a fileId/Path
+                // Register with FileSharer
                 String fileId = fileSharer.offerFile(fileToSave.getAbsolutePath());
                 
-                // Return the path for the frontend to use
                 String jsonResponse = String.format("{\"fileId\": \"%s\", \"downloadPath\": \"/download/%s\"}", fileId, fileId);
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, jsonResponse.length());
@@ -141,16 +140,23 @@ public class FileController {
                 
             } catch (Exception e) {
                 e.printStackTrace();
-                String error = "Upload failed: " + e.getMessage();
-                exchange.sendResponseHeaders(500, error.length());
-                exchange.getResponseBody().write(error.getBytes());
+                sendError(exchange, 500, "Upload failed: " + e.getMessage());
             }
         }
     }
 
     /**
-     * Inner class to handle multipart/form-data parsing
+     * Helper to send clean error responses
      */
+    private void sendError(HttpExchange exchange, int status, String message) throws IOException {
+        byte[] response = message.getBytes();
+        exchange.sendResponseHeaders(status, response.length);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(response);
+        }
+    }
+
+    // MultipartParser remains the same...
     private static class MultipartParser {
         private final byte[] data;
         private final String boundary;
