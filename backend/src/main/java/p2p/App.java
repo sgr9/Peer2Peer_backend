@@ -9,12 +9,23 @@ import java.io.IOException;
 public class App {
     public static void main(String[] args) {
         try {
-            // Start the API server on port 8080
-            FileController fileController = new FileController(8080);
+            // Get port from environment variable or default to 8080
+            int port = 8080;
+            String portEnv = System.getenv("PORT");
+            if (portEnv != null && !portEnv.isEmpty()) {
+                try {
+                    port = Integer.parseInt(portEnv);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid PORT environment variable: " + portEnv + ", using default 8080");
+                }
+            }
+            
+            // Start the API server
+            FileController fileController = new FileController(port);
             fileController.start();
             
-            System.out.println("PeerLink server started on port 8080");
-            System.out.println("UI available at http://localhost:3000");
+            System.out.println("PeerLink server started on port " + port);
+            System.out.println("API endpoints ready for connections");
             
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("Shutting down server...");

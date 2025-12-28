@@ -1,0 +1,13 @@
+{
+  "buildCommand": "mvn clean package -DskipTests",
+  "outputDirectory": "backend/target",
+  "functions": {
+    "api/**": {
+      "runtime": "java17"
+    }
+  },
+  "env": {
+    "PORT": "8080",
+    "VERCEL_ENV": "production"
+  }
+}
