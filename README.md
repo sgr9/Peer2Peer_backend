@@ -1,6 +1,6 @@
 # PeerLink Backend
 
-A peer-to-peer file sharing Java backend application built with Spring Framework and Maven.
+A peer-to-peer file sharing Java backend application built with Java Sockets and Maven.
 
 ## Overview
 
