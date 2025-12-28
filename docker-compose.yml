@@ -6,20 +6,16 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "8080:8080"
-    # Expose the dynamic port range for P2P file sharing
-    expose:
-      - "49152-65535:49152-65535"
-    # For production, you might want to add port mappings for the dynamic ports
-    # ports:
-    #   - "49152-65535:49152-65535"
+    environment:
+      - PORT=8080
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        - REACT_APP_API_URL=http://localhost:8080
     ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - "3000:80"  # Map local 3000 to Nginx port 80
     depends_on:
       - backend
