@@ -3,41 +3,24 @@ package p2p;
 import p2p.controller.FileController;
 import java.io.IOException;
 
-/**
- * PeerLink - P2P File Sharing Application
- */
 public class App {
     public static void main(String[] args) {
         try {
-            // Get port from environment variable or default to 8080
-            int port = 8080;
+            // Railway dynamically assigns a port via the PORT environment variable
             String portEnv = System.getenv("PORT");
-            if (portEnv != null && !portEnv.isEmpty()) {
-                try {
-                    port = Integer.parseInt(portEnv);
-                } catch (NumberFormatException e) {
-                    System.err.println("Invalid PORT environment variable: " + portEnv + ", using default 8080");
-                }
-            }
-            
-            // Start the API server
-            FileController fileController = new FileController(port);
-            fileController.start();
-            
-            System.out.println("PeerLink server started on port " + port);
-            System.out.println("API endpoints ready for connections");
-            
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("Shutting down server...");
-                fileController.stop();
-            }));
-            
-            System.out.println("Press Enter to stop the server");
-            System.in.read();
-            
+            int port = (portEnv != null) ? Integer.parseInt(portEnv) : 8080;
+
+            FileController controller = new FileController(port);
+            controller.start();
+
+            // This helps you see in the Railway logs that the app started correctly
+            System.out.println("PeerLink Backend initialized successfully.");
+            System.out.println("Listening on 0.0.0.0:" + port);
+
         } catch (IOException e) {
-            System.err.println("Error starting server: " + e.getMessage());
+            System.err.println("Critical failure during startup: " + e.getMessage());
             e.printStackTrace();
+            System.exit(1);
         }
     }
 }
