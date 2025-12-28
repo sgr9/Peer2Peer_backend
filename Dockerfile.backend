@@ -1,21 +1,27 @@
-
+# Stage 1: Build
 FROM maven:3.9-openjdk-17-slim AS build
 WORKDIR /build
 
+# 1. Copy the parent pom first
 COPY pom.xml .
 
-# This ensures the structure is /build/backend/src...
+# 2. Copy the backend module directory
+# This copies the folder 'backend' into '/build/backend'
 COPY backend ./backend
 
+# 3. Build the backend module specifically
+# -pl backend: project list (build only backend)
+# -am: also make (build parent/dependencies if needed)
 RUN mvn clean package -pl backend -am -DskipTests
 
+# Stage 2: Runtime
 FROM openjdk:17-slim
 WORKDIR /app
 
+# 4. FIXED PATH: Copy from the sub-module target folder
+# We copy from Stage 1 (/build) into Stage 2 (/app)
 COPY --from=build /build/backend/target/peerlink.jar app.jar
 
-COPY --from=build /build/backend/target/dependency/*.jar ./lib/
-
 EXPOSE 8080
-
+# The assembly plugin creates a "fat-jar", so we use -jar directly
 CMD ["java", "-jar", "app.jar"]
