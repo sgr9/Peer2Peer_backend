@@ -61,9 +61,21 @@ public class FileController {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             Headers headers = exchange.getResponseHeaders();
-            headers.add("Access-Control-Allow-Origin", "*");
-            headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            
+            // Get the Origin header from the request
+            String origin = exchange.getRequestHeaders().getFirst("Origin");
+            
+            // Allow requests from Vercel frontend, localhost, and any origin
+            String allowedOrigin = "*";
+            if (origin != null && (origin.contains("vercel.app") || origin.contains("localhost"))) {
+                allowedOrigin = origin;
+            }
+            
+            headers.add("Access-Control-Allow-Origin", allowedOrigin);
+            headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
             headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            headers.add("Access-Control-Allow-Credentials", "true");
+            headers.add("Access-Control-Max-Age", "3600");
             
             if (exchange.getRequestMethod().equalsIgnoreCase("OPTIONS")) {
                 exchange.sendResponseHeaders(204, -1);
@@ -169,9 +181,21 @@ public class FileController {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             Headers headers = exchange.getResponseHeaders();
-            headers.add("Access-Control-Allow-Origin", "*");
-            headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            
+            // Get the Origin header from the request
+            String origin = exchange.getRequestHeaders().getFirst("Origin");
+            
+            // Allow requests from Vercel frontend, localhost, and any origin
+            String allowedOrigin = "*";
+            if (origin != null && (origin.contains("vercel.app") || origin.contains("localhost"))) {
+                allowedOrigin = origin;
+            }
+            
+            headers.add("Access-Control-Allow-Origin", allowedOrigin);
+            headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
             headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            headers.add("Access-Control-Allow-Credentials", "true");
+            headers.add("Access-Control-Max-Age", "3600");
             
             // Handle CORS preflight
             if (exchange.getRequestMethod().equalsIgnoreCase("OPTIONS")) {
@@ -257,7 +281,21 @@ public class FileController {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             Headers headers = exchange.getResponseHeaders();
-            headers.add("Access-Control-Allow-Origin", "*");
+            
+            // Get the Origin header from the request
+            String origin = exchange.getRequestHeaders().getFirst("Origin");
+            
+            // Allow requests from Vercel frontend, localhost, and any origin
+            String allowedOrigin = "*";
+            if (origin != null && (origin.contains("vercel.app") || origin.contains("localhost"))) {
+                allowedOrigin = origin;
+            }
+            
+            headers.add("Access-Control-Allow-Origin", allowedOrigin);
+            headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+            headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            headers.add("Access-Control-Allow-Credentials", "true");
+            headers.add("Access-Control-Max-Age", "3600");
             
             if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
                 String response = "Method Not Allowed";
