@@ -1,96 +1,81 @@
 package p2p.services;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashMap;
-
-import p2p.utils.UploadUtils;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import java.io.*;
+import java.util.UUID;
 
 public class FileSharer {
 
-    private HashMap<Integer, String> availableFiles;
-    public FileSharer() {
-        availableFiles = new HashMap<>();
+    private final HttpServer server;
+
+    /**
+     * Constructor now takes the existing HttpServer so we don't open new ports.
+     */
+    public FileSharer(HttpServer server) {
+        this.server = server;
     }
 
-    public int offerFiles(String filePath){
-        int port;
-        while(true){
-            port = UploadUtils.generateCode();
-            if(!availableFiles.containsKey(port)){
-                availableFiles.put(port, filePath);
-                return port;
-            }
-        }
+    /**
+     * Instead of a port, this returns a unique fileId.
+     * It registers a new URL route (/download/uuid) on your main server.
+     */
+    public String offerFile(String filePath) {
+        // We use a UUID for security so people can't guess download links
+        String fileId = UUID.randomUUID().toString();
+        String contextPath = "/download/" + fileId;
+
+        // Register the dynamic route
+        server.createContext(contextPath, new HttpDownloadHandler(filePath));
+        
+        System.out.println("New file registered at path: " + contextPath);
+        return fileId;
     }
 
-    public void startFileServer(int port){
-        String filePath = availableFiles.get(port);
-        if(filePath == null){
-            System.out.println("No file associated on this port."+ port);
-            return;
-        }
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Serving file"+ new File(filePath).getName() +" on port "+ port);
-            // Keep accepting connections until server is closed
-            while(!serverSocket.isClosed()){
-                try {
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("Client Connection:" + clientSocket.getInetAddress());
-                    // Handle each client in a separate thread
-                    new Thread(new FileSenderHandler(clientSocket, filePath)).start();
-                } catch (IOException ex){
-                    if(!serverSocket.isClosed()){
-                        System.err.println("Error accepting client on port "+ port + ": " + ex.getMessage());
-                    }
-                    break;
-                }
-            }
-        }catch (IOException ex){
-            System.err.println("Error handling file server on port:"+ port);
-        }
-    }
-
-
-    private static class FileSenderHandler implements Runnable{
-
-        private final Socket clientSocket;
+    /**
+     * This replaces the old Socket-based FileSenderHandler.
+     * It uses standard HTTP streaming.
+     */
+    private static class HttpDownloadHandler implements HttpHandler {
         private final String filePath;
 
-        public FileSenderHandler(Socket clientSocket, String filePath){
-            this.clientSocket = clientSocket;
+        public HttpDownloadHandler(String filePath) {
             this.filePath = filePath;
         }
 
-
         @Override
-        public void run() {
-            try(FileInputStream fis = new FileInputStream(filePath)){
-                OutputStream oos = clientSocket.getOutputStream();
-                String fileName = new File(filePath).getName();
-                String header = "FILENAME:" + fileName + "\n";
-                oos.write(header.getBytes());
-
-                byte[] buffer = new byte[4096];
-                int byteRead;
-                while((byteRead = fis.read(buffer)) != -1){
-                    oos.write(buffer, 0, byteRead);
+        public void handle(HttpExchange exchange) throws IOException {
+            // 1. Enable CORS for downloads
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            
+            File file = new File(filePath);
+            if (!file.exists()) {
+                String response = "Error: File not found on server.";
+                exchange.sendResponseHeaders(404, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes());
                 }
-                System.out.println("File "+ fileName +" sent to "+ clientSocket.getInetAddress()); 
-            }catch(Exception ex){
-                System.err.println("Error sending file: " + ex.getMessage());
-            }finally{
-                try{
-                    clientSocket.close();
-                }catch(Exception e){
-                    System.err.println("Error closing client socket: " + e.getMessage());
+                return;
+            }
+
+            // 2. Set HTTP Headers for a file download
+            exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
+            exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+            
+            // 3. Send response status and file length
+            exchange.sendResponseHeaders(200, file.length());
+
+            // 4. Stream the file bytes to the browser
+            try (FileInputStream fis = new FileInputStream(file);
+                 OutputStream os = exchange.getResponseBody()) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    os.write(buffer, 0, bytesRead);
                 }
             }
+            System.out.println("Successfully served file: " + file.getName());
         }
     }
-    
 }
