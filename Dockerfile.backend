@@ -19,7 +19,7 @@ WORKDIR /app
 
 # 4. Copy the fat JAR produced by the assembly plugin
 # It is located in /build/backend/target/peerlink.jar
-COPY --from=build /build/backend/target/peerlink-backend-1.0-SNAPSHOT.jar app.jar
+COPY --from=build /build/backend/target/peerlink.jar app.jar
 
 # 5. Expose the API port
 EXPOSE 8080
