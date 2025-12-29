@@ -184,7 +184,7 @@ mvn test -X
 
 ## License
 
-This project is licensed under the MIT License - see LICENSE file for details.
+This project is licensed under the GPL 3.0 License - see LICENSE file for details.
 
 ## Support
 
