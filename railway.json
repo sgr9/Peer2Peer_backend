@@ -1,0 +1,9 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "mvn clean package -DskipTests && cp -r backend/target target"
+  },
+  "deploy": {
+    "startCommand": "java -jar target/peerlink.jar"
+  }
+}
