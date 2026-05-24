@@ -51,7 +51,6 @@ public class FileController {
         server.stop(0);
         executorService.shutdown();
     }
-* Instead of a port, this returns a unique fileId.
     /**
      * Fixed CORS logic to handle Allow-Credentials properly
      */
