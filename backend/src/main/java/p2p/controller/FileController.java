@@ -26,7 +26,7 @@ public class FileController {
         // Pass the server instance to FileSharer so it can add routes dynamically
         this.fileSharer = new FileSharer(server);
         
-        // Use temp directory for cloud-native storage
+        // Using temp directory for cloud-native storage
         this.uploadDir = System.getProperty("java.io.tmpdir") + File.separator + "peerlink-uploads";
         this.executorService = Executors.newFixedThreadPool(10);
         
@@ -35,7 +35,7 @@ public class FileController {
             uploadDirFile.mkdirs();
         }
         
-        // Register standard routes
+        // Pleaes register standard routes
         server.createContext("/upload", new UploadHandler());
         server.createContext("/", new DefaultHandler()); 
         
@@ -51,7 +51,7 @@ public class FileController {
         server.stop(0);
         executorService.shutdown();
     }
-
+* Instead of a port, this returns a unique fileId.
     /**
      * Fixed CORS logic to handle Allow-Credentials properly
      */
@@ -145,9 +145,7 @@ public class FileController {
         }
     }
 
-    /**
-     * Helper to send clean error responses
-     */
+     // Helper to send clean error responses
     private void sendError(HttpExchange exchange, int status, String message) throws IOException {
         byte[] response = message.getBytes();
         exchange.sendResponseHeaders(status, response.length);
